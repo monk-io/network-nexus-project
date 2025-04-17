@@ -1,4 +1,5 @@
 
+import React from 'react';
 import CreatePostCard from "@/components/CreatePostCard";
 import Header from "@/components/Header";
 import PostCard from "@/components/PostCard";
@@ -89,16 +90,16 @@ export default function Feed() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           {/* Left sidebar */}
           <div className="lg:col-span-3 space-y-4">
-            <ProfileCard />
+            <ProfileCard className="mb-4" />
             
             <Card className="bg-white rounded-lg shadow overflow-hidden">
               <div className="p-4">
-                <div className="text-xs text-gray-500 flex justify-between items-center">
+                <div className="text-xs text-gray-500 flex justify-between items-center mb-2">
                   <span>Connections</span>
                   <a href="/my-network" className="text-linkedin-blue hover:underline">See all</a>
                 </div>
-                <div className="font-medium mt-1">Grow your network</div>
-                <div className="mt-4 space-y-2">
+                <div className="font-medium mb-3">Grow your network</div>
+                <div className="space-y-3">
                   {connectionSuggestions.slice(0, 2).map(connection => (
                     <div key={connection.id} className="flex items-center space-x-2">
                       <Avatar className="h-10 w-10">
@@ -190,3 +191,4 @@ export default function Feed() {
 function Card({ children, className = "" }) {
   return <div className={`bg-white rounded-lg shadow overflow-hidden ${className}`}>{children}</div>;
 }
+
