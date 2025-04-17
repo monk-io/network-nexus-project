@@ -13,7 +13,7 @@ interface ProfileCardProps {
   backgroundUrl?: string;
   connectionCount?: number;
   isCurrentUser?: boolean;
-  className?: string; // Added className prop
+  className?: string;
 }
 
 export default function ProfileCard({
@@ -24,12 +24,12 @@ export default function ProfileCard({
   backgroundUrl = "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=500&q=80",
   connectionCount = 432,
   isCurrentUser = true,
-  className = "" // Default to empty string
+  className = ""
 }: ProfileCardProps) {
   return (
     <Card className={`overflow-hidden ${className}`}>
       <div 
-        className="h-24 bg-gradient-to-r from-blue-400 to-blue-600" 
+        className="h-16 bg-gradient-to-r from-blue-400 to-blue-600" 
         style={{
           backgroundImage: backgroundUrl ? `url(${backgroundUrl})` : undefined,
           backgroundSize: 'cover',
@@ -37,34 +37,34 @@ export default function ProfileCard({
         }}
       />
       <CardContent className="pt-0 relative">
-        <div className="absolute -top-8 left-4 ring-4 ring-white rounded-full">
-          <Avatar className="h-16 w-16">
+        <div className="absolute -top-6 left-4 ring-4 ring-white rounded-full">
+          <Avatar className="h-12 w-12">
             <AvatarImage src={avatarUrl} />
             <AvatarFallback className="bg-gray-200">
-              <User className="h-8 w-8 text-gray-500" />
+              <User className="h-6 w-6 text-gray-500" />
             </AvatarFallback>
           </Avatar>
         </div>
-        <div className="mt-10 mb-4">
+        <div className="mt-8 mb-2">
           <Link to={isCurrentUser ? "/profile" : `/profile/${name.toLowerCase().replace(/\s+/g, "-")}`}>
-            <h3 className="text-lg font-semibold hover:underline cursor-pointer">{name}</h3>
+            <h3 className="text-sm font-semibold hover:underline cursor-pointer">{name}</h3>
           </Link>
-          <p className="text-sm text-gray-600">{title}</p>
+          <p className="text-xs text-gray-600">{title}</p>
           <div className="flex items-center mt-1 text-xs text-gray-500">
             <MapPin className="h-3 w-3 mr-1" />
             <span>{location}</span>
           </div>
           {connectionCount > 0 && (
-            <div className="mt-2 text-xs text-blue-600 font-medium">
+            <div className="mt-1 text-xs text-blue-600 font-medium">
               {connectionCount} connections
             </div>
           )}
         </div>
       </CardContent>
       {isCurrentUser && (
-        <CardFooter className="border-t px-4 py-3 bg-gray-50">
+        <CardFooter className="border-t px-4 py-2 bg-gray-50">
           <Link to="/profile" className="w-full">
-            <Button variant="secondary" size="sm" className="w-full text-xs h-8">
+            <Button variant="secondary" size="sm" className="w-full text-xs h-7">
               View profile
             </Button>
           </Link>
@@ -73,3 +73,4 @@ export default function ProfileCard({
     </Card>
   );
 }
+
