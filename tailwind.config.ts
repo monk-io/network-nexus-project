@@ -32,6 +32,13 @@ export default {
 					DEFAULT: 'hsl(var(--secondary))',
 					foreground: 'hsl(var(--secondary-foreground))'
 				},
+				linkedin: {
+					blue: '#0077B5',
+					lightblue: '#0073b1',
+					bg: '#f3f2ef',
+					text: '#333333',
+					light: '#f5f5f5',
+				},
 				destructive: {
 					DEFAULT: 'hsl(var(--destructive))',
 					foreground: 'hsl(var(--destructive-foreground))'
