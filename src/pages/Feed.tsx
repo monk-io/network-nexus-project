@@ -1,13 +1,11 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import CreatePostCard from "@/components/CreatePostCard";
 import Header from "@/components/Header";
 import PostCard from "@/components/PostCard";
 import ProfileCard from "@/components/ProfileCard";
 import ConnectionCard from "@/components/ConnectionCard";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { User } from "lucide-react";
+import { Link } from "react-router-dom";
 
 // Mock data
 const posts = [
@@ -86,7 +84,7 @@ export default function Feed() {
     <div className="min-h-screen bg-linkedin-bg">
       <Header />
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           {/* Left sidebar */}
           <div className="lg:col-span-3 space-y-4">
@@ -94,32 +92,23 @@ export default function Feed() {
             
             <Card className="bg-white rounded-lg shadow overflow-hidden">
               <div className="p-4">
-                <div className="text-xs text-gray-500 flex justify-between items-center mb-2">
-                  <span>Connections</span>
-                  <a href="/my-network" className="text-linkedin-blue hover:underline">See all</a>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-xs text-gray-500">Connections</span>
+                  <Link to="/my-network" className="text-xs text-blue-600 hover:underline">See all</Link>
                 </div>
-                <div className="font-medium mb-3">Grow your network</div>
-                <div className="space-y-3">
+                <h4 className="text-base font-semibold mb-3">Grow your network</h4>
+                <div className="space-y-1">
                   {connectionSuggestions.slice(0, 2).map(connection => (
-                    <div key={connection.id} className="flex items-center space-x-2">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={connection.avatarUrl} />
-                        <AvatarFallback>
-                          <User className="h-4 w-4" />
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium leading-tight">{connection.name}</p>
-                        <p className="text-xs text-gray-500 truncate">{connection.title}</p>
-                      </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="h-8 text-xs border-gray-300"
-                      >
-                        Connect
-                      </Button>
-                    </div>
+                    <ConnectionCard
+                      key={connection.id}
+                      id={connection.id}
+                      name={connection.name}
+                      title={connection.title}
+                      avatarUrl={connection.avatarUrl}
+                      mutualConnections={connection.mutualConnections}
+                      profileUrl={connection.profileUrl}
+                      onConnect={(id) => console.log(`Connect with ${id}`)}
+                    />
                   ))}
                 </div>
               </div>
@@ -191,4 +180,3 @@ export default function Feed() {
 function Card({ children, className = "" }) {
   return <div className={`bg-white rounded-lg shadow overflow-hidden ${className}`}>{children}</div>;
 }
-

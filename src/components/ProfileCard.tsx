@@ -28,43 +28,53 @@ export default function ProfileCard({
 }: ProfileCardProps) {
   return (
     <Card className={`overflow-hidden ${className}`}>
+      {/* Gradient header */}
       <div 
-        className="h-16 bg-gradient-to-r from-blue-400 to-blue-600" 
+        className="h-14 bg-gradient-to-r from-pink-500 via-purple-400 to-blue-400" 
         style={{
           backgroundImage: backgroundUrl ? `url(${backgroundUrl})` : undefined,
           backgroundSize: 'cover',
           backgroundPosition: 'center'
         }}
       />
-      <CardContent className="pt-0 relative">
-        <div className="absolute -top-6 left-4 ring-4 ring-white rounded-full">
-          <Avatar className="h-12 w-12">
-            <AvatarImage src={avatarUrl} />
-            <AvatarFallback className="bg-gray-200">
-              <User className="h-6 w-6 text-gray-500" />
-            </AvatarFallback>
-          </Avatar>
-        </div>
-        <div className="mt-8 mb-2">
-          <Link to={isCurrentUser ? "/profile" : `/profile/${name.toLowerCase().replace(/\s+/g, "-")}`}>
-            <h3 className="text-sm font-semibold hover:underline cursor-pointer">{name}</h3>
-          </Link>
-          <p className="text-xs text-gray-600">{title}</p>
-          <div className="flex items-center mt-1 text-xs text-gray-500">
-            <MapPin className="h-3 w-3 mr-1" />
-            <span>{location}</span>
+      
+      {/* Profile content */}
+      <CardContent className="p-0">
+        <div className="flex flex-col px-4 pt-3 pb-2">
+          {/* Avatar */}
+          <div className="relative -mt-8 mb-2">
+            <Avatar className="h-14 w-14 border-2 border-white">
+              <AvatarImage src={avatarUrl} />
+              <AvatarFallback className="bg-gray-200">
+                <User className="h-6 w-6 text-gray-500" />
+              </AvatarFallback>
+            </Avatar>
           </div>
-          {connectionCount > 0 && (
-            <div className="mt-1 text-xs text-blue-600 font-medium">
-              {connectionCount} connections
+          
+          {/* User info */}
+          <div className="space-y-0.5">
+            <Link to={isCurrentUser ? "/profile" : `/profile/${name.toLowerCase().replace(/\s+/g, "-")}`}>
+              <h3 className="text-base font-semibold leading-tight">{name}</h3>
+            </Link>
+            <p className="text-xs text-gray-600 leading-tight">{title}</p>
+            <div className="flex items-center text-xs text-gray-500 leading-tight">
+              <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
+              <span>{location}</span>
             </div>
-          )}
+            {connectionCount > 0 && (
+              <div className="text-xs text-blue-600 font-medium pt-1">
+                {connectionCount} connections
+              </div>
+            )}
+          </div>
         </div>
       </CardContent>
+      
+      {/* Footer */}
       {isCurrentUser && (
-        <CardFooter className="border-t px-4 py-2 bg-gray-50">
+        <CardFooter className="border-t px-4 py-3 flex">
           <Link to="/profile" className="w-full">
-            <Button variant="secondary" size="sm" className="w-full text-xs h-7">
+            <Button variant="primary" size="sm" className="w-full text-sm h-8 bg-blue-600 hover:bg-blue-700">
               View profile
             </Button>
           </Link>
@@ -73,4 +83,3 @@ export default function ProfileCard({
     </Card>
   );
 }
-
