@@ -13,6 +13,7 @@ interface ProfileCardProps {
   backgroundUrl?: string;
   connectionCount?: number;
   isCurrentUser?: boolean;
+  className?: string; // Added className prop
 }
 
 export default function ProfileCard({
@@ -22,10 +23,11 @@ export default function ProfileCard({
   avatarUrl = "",
   backgroundUrl = "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=500&q=80",
   connectionCount = 432,
-  isCurrentUser = true
+  isCurrentUser = true,
+  className = "" // Default to empty string
 }: ProfileCardProps) {
   return (
-    <Card className="overflow-hidden">
+    <Card className={`overflow-hidden ${className}`}>
       <div 
         className="h-24 bg-gradient-to-r from-blue-400 to-blue-600" 
         style={{
