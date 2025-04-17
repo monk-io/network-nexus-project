@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import CreatePostCard from "@/components/CreatePostCard";
 import Header from "@/components/Header";
@@ -5,6 +6,8 @@ import PostCard from "@/components/PostCard";
 import ProfileCard from "@/components/ProfileCard";
 import ConnectionCard from "@/components/ConnectionCard";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { User } from "lucide-react";
 import { Link } from "react-router-dom";
 
 // Mock data

@@ -74,7 +74,7 @@ export default function ProfileCard({
       {isCurrentUser && (
         <CardFooter className="border-t px-4 py-3 flex">
           <Link to="/profile" className="w-full">
-            <Button variant="primary" size="sm" className="w-full text-sm h-8 bg-blue-600 hover:bg-blue-700">
+            <Button variant="default" size="sm" className="w-full text-sm h-8 bg-blue-600 hover:bg-blue-700">
               View profile
             </Button>
           </Link>
