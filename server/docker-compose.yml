@@ -1,0 +1,12 @@
+version: "3.8"
+services:
+  mongo:
+    image: mongo:latest
+    container_name: network-nexus-mongo
+    ports:
+      - "27017:27017"
+  redis:
+    image: redis:alpine
+    container_name: network-nexus-redis
+    ports:
+      - "6379:6379"
