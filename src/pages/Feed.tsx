@@ -14,12 +14,15 @@ import { Link } from "react-router-dom";
 
 // Type for feed post data fetched from API
 interface FeedPost {
+  _id: string;
   id: string;
   author: {
+    _id: string;
+    username: string;
     name: string;
-    title: string;
-    avatarUrl: string;
-    profileUrl: string;
+    title?: string;
+    avatarUrl?: string;
+    profileUrl?: string;
   };
   content: string;
   imageUrl?: string;
@@ -31,12 +34,12 @@ interface FeedPost {
 
 // Type for connection suggestion
 interface Suggestion {
-  id: string;
+  _id: string;
+  sub: string;
+  username: string;
   name: string;
-  title: string;
-  avatarUrl: string;
-  mutualConnections: number;
-  profileUrl: string;
+  title?: string;
+  avatarUrl?: string;
 }
 
 // Types for user and connections
@@ -122,7 +125,7 @@ export default function Feed() {
               <div className="p-4">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-xs text-gray-500">Connections</span>
-                  <Link to="/my-network" className="text-xs text-blue-600 hover:underline">See all</Link>
+                  <Link to="/network" className="text-xs text-blue-600 hover:underline">See all</Link>
                 </div>
                 <h4 className="text-base font-semibold mb-3">Grow your network</h4>
                 <div className="space-y-1">
@@ -131,13 +134,12 @@ export default function Feed() {
                   ) : (
                     suggestions.slice(0, 2).map(connection => (
                       <ConnectionCard
-                        key={connection.id}
-                        id={connection.id}
+                        key={connection._id}
+                        id={connection._id}
                         name={connection.name}
                         title={connection.title}
                         avatarUrl={connection.avatarUrl}
-                        mutualConnections={connection.mutualConnections}
-                        profileUrl={connection.profileUrl}
+                        profileUrl={`/profile/${connection.username}`}
                         onConnect={(id) => connectMutation.mutate(id)}
                       />
                     ))
@@ -152,7 +154,20 @@ export default function Feed() {
             <CreatePostCard />
             
             {posts.map(post => (
-              <PostCard key={post.id} {...post} />
+              <PostCard 
+                key={post._id}
+                id={post._id}
+                author={{
+                  ...post.author,
+                  profileUrl: `/profile/${post.author.username}`
+                }}
+                content={post.content}
+                imageUrl={post.imageUrl}
+                timestamp={post.timestamp}
+                likes={post.likes}
+                comments={post.comments}
+                isLiked={post.isLiked}
+              />
             ))}
           </div>
           
@@ -164,15 +179,14 @@ export default function Feed() {
                 {suggestionsLoading ? (
                   <div>Loading suggestions…</div>
                 ) : (
-                  suggestions.slice(0, 2).map(connection => (
+                  suggestions.slice(0, 2).map(suggestion => (
                     <ConnectionCard
-                      key={connection.id}
-                      id={connection.id}
-                      name={connection.name}
-                      title={connection.title}
-                      avatarUrl={connection.avatarUrl}
-                      mutualConnections={connection.mutualConnections}
-                      profileUrl={connection.profileUrl}
+                      key={suggestion._id}
+                      id={suggestion._id}
+                      name={suggestion.name}
+                      title={suggestion.title}
+                      avatarUrl={suggestion.avatarUrl}
+                      profileUrl={`/profile/${suggestion.username}`}
                       onConnect={(id) => connectMutation.mutate(id)}
                     />
                   ))

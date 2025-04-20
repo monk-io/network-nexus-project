@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, KeyboardEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchComments, addComment } from '@/lib/api';
 import { useAuth0 } from '@auth0/auth0-react';
@@ -18,11 +18,35 @@ interface Comment {
   createdAt: string;
   author: {
     sub: string;
+    username: string;
     name: string;
     title?: string;
     avatarUrl?: string;
   };
 }
+
+// Helper function copied from PostCard.tsx
+const timeAgo = (isoString: string) => {
+  const date = new Date(isoString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSecs = Math.floor(diffMs / 1000);
+  const diffMins = Math.floor(diffSecs / 60);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffDays > 7) {
+    return date.toLocaleDateString();
+  } else if (diffDays > 0) {
+    return `${diffDays}d`;
+  } else if (diffHours > 0) {
+    return `${diffHours}h`;
+  } else if (diffMins > 0) {
+    return `${diffMins}m`;
+  } else {
+    return 'just now';
+  }
+};
 
 export default function CommentsSection({ postId }: CommentsSectionProps) {
   const { getAccessTokenSilently } = useAuth0();
@@ -43,11 +67,34 @@ export default function CommentsSection({ postId }: CommentsSectionProps) {
       const token = await getAccessTokenSilently();
       return addComment(token, postId, content);
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       setNewComment('');
-      queryClient.invalidateQueries({ queryKey: ['comments', postId] });
+      try {
+        console.log(`Invalidating queries for postId: ${postId}`);
+        await queryClient.invalidateQueries({ queryKey: ['comments', postId] });
+        await queryClient.invalidateQueries({ queryKey: ['feed'] });
+        await queryClient.invalidateQueries({ queryKey: ['userPosts'] });
+        
+        console.log("Attempting refetch of feed and userPosts after comment...");
+        await queryClient.refetchQueries({ queryKey: ['feed'], exact: true });
+        await queryClient.refetchQueries({ queryKey: ['userPosts'], exact: true });
+        console.log("Refetch attempt complete.");
+      } catch (error) {
+          console.error("Error during query invalidation/refetch after comment:", error);
+      }
     },
   });
+
+  const handleCommentKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+      if (event.key === 'Escape') {
+          setNewComment('');
+      } else if (event.key === 'Enter') {
+          event.preventDefault(); // Prevent default form submission if any
+          if (newComment.trim()) {
+              addCommentMutation.mutate(newComment);
+          }
+      }
+  };
 
   if (isLoading) {
     return <div className="p-4 text-sm text-gray-500">Loading comments…</div>;
@@ -57,17 +104,19 @@ export default function CommentsSection({ postId }: CommentsSectionProps) {
     <div className="p-4 border-t space-y-4">
       {comments.map(c => (
         <div key={c._id} className="flex items-start space-x-3">
-          <Avatar className="h-8 w-8 flex-shrink-0">
-            <AvatarImage src={c.author.avatarUrl} />
-            <AvatarFallback>
-              <User className="h-4 w-4 text-gray-500" />
-            </AvatarFallback>
-          </Avatar>
+          <Link to={`/profile/${c.author.username}`}>
+            <Avatar className="h-8 w-8 flex-shrink-0">
+              <AvatarImage src={c.author.avatarUrl} />
+              <AvatarFallback>
+                <User className="h-4 w-4 text-gray-500" />
+              </AvatarFallback>
+            </Avatar>
+          </Link>
           <div className="flex-1">
-            <Link to={`/profile/${encodeURIComponent(c.author.sub)}`} className="font-medium text-sm hover:underline">
+            <Link to={`/profile/${c.author.username}`} className="font-medium text-sm hover:underline">
               {c.author.name}
             </Link>
-            <p className="text-xs text-gray-500">{new Date(c.createdAt).toLocaleString()}</p>
+            <p className="text-xs text-gray-500">{timeAgo(c.createdAt)}</p>
             <p className="text-sm text-gray-700 mt-1">{c.content}</p>
           </div>
         </div>
@@ -79,6 +128,7 @@ export default function CommentsSection({ postId }: CommentsSectionProps) {
           value={newComment}
           onChange={e => setNewComment(e.target.value)}
           placeholder="Add a comment…"
+          onKeyDown={handleCommentKeyDown}
         />
         <Button
           onClick={() => addCommentMutation.mutate(newComment)}

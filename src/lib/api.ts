@@ -79,6 +79,13 @@ export async function fetchUser(token: string, id: string) {
   return handleResponse(res);
 }
 
+export async function fetchUserByUsername(token: string, username: string) {
+  const res = await fetch(`${API}/api/users/username/${username}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return handleResponse(res);
+}
+
 export async function fetchCurrentUser(token: string) {
   const res = await fetch(`${API}/api/users/me`, {
     headers: { Authorization: `Bearer ${token}` },

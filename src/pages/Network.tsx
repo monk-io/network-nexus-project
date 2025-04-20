@@ -12,18 +12,37 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Link } from 'react-router-dom';
 
 // Types for API data
-interface Suggestion { id: string; name: string; title: string; avatarUrl: string; mutualConnections: number; profileUrl: string; }
-interface ConnectionUser { _id: string; name: string; title?: string; avatarUrl?: string; }
+interface Suggestion {
+  _id: string;
+  sub: string;
+  username: string;
+  name: string;
+  title?: string;
+  avatarUrl?: string;
+  // mutualConnections is not returned by backend
+  // profileUrl is constructed in component
+}
+
+interface ConnectionUser { 
+  _id: string; 
+  username: string; // Add username
+  name: string; 
+  title?: string; 
+  avatarUrl?: string; 
+}
 
 // Types for pending connection invitations
 interface PendingConnection {
   _id: string;
   from: {
+    _id: string; // Assuming API returns _id
     sub: string;
+    username: string; // Add username
     name: string;
     title?: string;
     avatarUrl?: string;
   };
+  // Add other fields if needed, like status, timestamps
 }
 
 export default function Network() {
@@ -208,6 +227,8 @@ export default function Network() {
                 <div className={gridView === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4' : 'space-y-4'}>
                   {connectionsLoading ? (
                     <div>Loading connections…</div>
+                  ) : connections.length === 0 ? (
+                    <div className="col-span-full text-center text-gray-500 py-4">No connections yet.</div>
                   ) : (
                     connections.map(c => (
                       <ConnectionCard
@@ -216,7 +237,7 @@ export default function Network() {
                         name={c.name}
                         title={c.title}
                         avatarUrl={c.avatarUrl}
-                        profileUrl={`/profile/${encodeURIComponent(c.name.toLowerCase().replace(/\s+/g, '-'))}`}
+                        profileUrl={`/profile/${c.username}`}
                         isConnected={true}
                       />
                     ))
@@ -228,16 +249,17 @@ export default function Network() {
                 <div className={gridView === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4' : 'space-y-4'}>
                   {suggestionsLoading ? (
                     <div>Loading suggestions…</div>
+                  ) : suggestions.length === 0 ? (
+                     <div className="col-span-full text-center text-gray-500 py-4">No suggestions right now.</div>
                   ) : (
                     suggestions.map(suggestion => (
                       <ConnectionCard
-                        key={suggestion.id}
-                        id={suggestion.id}
+                        key={suggestion._id}
+                        id={suggestion._id}
                         name={suggestion.name}
                         title={suggestion.title}
                         avatarUrl={suggestion.avatarUrl}
-                        mutualConnections={suggestion.mutualConnections}
-                        profileUrl={suggestion.profileUrl}
+                        profileUrl={`/profile/${suggestion.username}`}
                         onConnect={handleConnect}
                         isConnected={false}
                       />
@@ -247,38 +269,51 @@ export default function Network() {
               </TabsContent>
 
               <TabsContent value="pending" className="mt-0">
-                {pendingLoading ? (
-                  <div>Loading invitations…</div>
-                ) : pending.length === 0 ? (
-                  <div>No pending invitations</div>
-                ) : (
-                  pending.map(conn => (
-                    <div key={conn._id} className="flex items-center justify-between p-3 border-b">
-                      <div className="flex items-center space-x-3">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={conn.from.avatarUrl} />
-                          <AvatarFallback>
-                            <User className="h-5 w-5 text-gray-500" />
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <Link to={`/profile/${encodeURIComponent(conn.from.sub)}`} className="font-medium hover:underline">
-                            {conn.from.name}
-                          </Link>
-                          <p className="text-xs text-gray-500">{conn.from.title}</p>
-                        </div>
+                <div className="space-y-4">
+                  {pendingLoading ? (
+                      <div>Loading invitations…</div>
+                  ) : pending.length === 0 ? (
+                      <div className="text-center text-gray-500 py-4">No pending invitations.</div>
+                  ) : (
+                    pending.map(invitation => (
+                      <div key={invitation._id} className="flex items-center justify-between p-3 border rounded-lg bg-white">
+                          <div className="flex items-center space-x-3">
+                             <Link to={`/profile/${invitation.from.username}`}> 
+                                <Avatar className="h-10 w-10">
+                                  <AvatarImage src={invitation.from.avatarUrl} />
+                                  <AvatarFallback><User className="h-5 w-5" /></AvatarFallback>
+                                </Avatar>
+                              </Link>
+                              <div>
+                                <Link to={`/profile/${invitation.from.username}`} className="font-medium text-sm hover:underline">
+                                  {invitation.from.name}
+                                </Link>
+                                <p className="text-xs text-gray-500">{invitation.from.title}</p>
+                              </div>
+                          </div>
+                          <div className="flex space-x-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-8" 
+                                onClick={() => rejectMutation.mutate(invitation._id)}
+                                disabled={rejectMutation.status === 'pending'}
+                              >
+                                Ignore
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                className="h-8 bg-linkedin-blue hover:bg-linkedin-lightblue"
+                                onClick={() => acceptMutation.mutate(invitation._id)}
+                                disabled={acceptMutation.status === 'pending'}
+                              >
+                                Accept
+                              </Button>
+                          </div>
                       </div>
-                      <div className="space-x-2">
-                        <Button size="sm" onClick={() => acceptMutation.mutate(conn._id)}>
-                          Accept
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => rejectMutation.mutate(conn._id)}>
-                          Reject
-                        </Button>
-                      </div>
-                    </div>
-                  ))
-                )}
+                    ))
+                  )}
+                </div>
               </TabsContent>
             </Tabs>
           </div>

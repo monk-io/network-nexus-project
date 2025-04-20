@@ -14,6 +14,8 @@ import CommentsSection from "@/components/CommentsSection";
 interface PostCardProps {
   id: string;
   author: {
+    _id: string;
+    username: string;
     name: string;
     title?: string;
     avatarUrl?: string;
@@ -53,6 +55,10 @@ export default function PostCard({
   });
 
   const handleLike = () => {
+    if (!id) {
+      console.error("PostCard: Cannot like post, ID is missing.");
+      return;
+    }
     likeMutation.mutate(!liked);
   };
 
@@ -139,48 +145,65 @@ export default function PostCard({
                   </div>
                 )}
               </div>
-              {comments > 0 && <span>{comments} comments</span>}
+              {comments > 0 && (
+                <button 
+                  onClick={() => setShowComments(prev => !prev)}
+                  className="hover:underline hover:text-linkedin-blue cursor-pointer"
+                >
+                  {comments} {comments === 1 ? 'comment' : 'comments'}
+                </button>
+              )}
             </div>
           </div>
         )}
         
-        <Separator />
+        <Separator className="mt-2" />
         
-        <CardFooter className="px-2 py-1">
-          <div className="w-full flex justify-between">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className={cn(
-                "flex-1 flex items-center justify-center text-xs h-9", 
-                liked && "text-linkedin-blue"
-              )}
-              onClick={handleLike}
-            >
-              <ThumbsUp className="h-4 w-4 mr-2" />
-              Like
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="flex-1 flex items-center justify-center text-xs h-9"
-              onClick={() => setShowComments(prev => !prev)}
-            >
-              <MessageSquare className="h-4 w-4 mr-2" />
-              Comment
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="flex-1 flex items-center justify-center text-xs h-9"
-            >
-              <Share2 className="h-4 w-4 mr-2" />
-              Share
-            </Button>
-          </div>
-        </CardFooter>
+        {id && (
+          <CardFooter className="px-2 py-1">
+            <div className="w-full flex justify-around items-center">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className={cn(
+                  "flex-1 flex items-center justify-center text-xs",
+                  liked && "text-linkedin-blue"
+                )}
+                onClick={handleLike}
+                disabled={!id}
+              >
+                <ThumbsUp className="h-4 w-4 mr-2" />
+                Like
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="flex-1 flex items-center justify-center text-xs"
+                onClick={() => setShowComments(prev => !prev)}
+                disabled={!id}
+              >
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Comment
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="flex-1 flex items-center justify-center text-xs"
+                disabled={!id}
+              >
+                <Share2 className="h-4 w-4 mr-2" />
+                Share
+              </Button>
+            </div>
+          </CardFooter>
+        )}
+        
+        {id && showComments && (
+          <>
+            <CommentsSection postId={id} />
+          </>
+        )}
       </Card>
-      {showComments && <CommentsSection postId={id} />}
     </>
   );
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { upsertUser } from '@/lib/api';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router-dom';
 export default function SignupWizard() {
   const { user, isAuthenticated, getAccessTokenSilently } = useAuth0();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
   const [name, setName] = useState(user?.name || '');
   const [title, setTitle] = useState(user?.nickname || '');
@@ -21,17 +22,29 @@ export default function SignupWizard() {
   const saveMutation = useMutation<unknown, Error, void>({
     mutationFn: async () => {
       const token = await getAccessTokenSilently();
-      await upsertUser(token, {
+      const userData = {
         sub: user!.sub,
         name,
         title,
         avatarUrl: user!.picture || '',
         bio,
         location
-      });
+      };
+      await upsertUser(token, userData);
     },
-    onSuccess: () => {
-      navigate('/');
+    onSuccess: async () => {
+      try {
+        console.log("SignupWizard: Mutation success. Invalidating and awaiting refetch...");
+        await queryClient.refetchQueries({ queryKey: ['currentUser'] });
+        console.log("SignupWizard: currentUser query refetched. Navigating to /");
+        navigate('/');
+      } catch (refetchError) {
+        console.error("SignupWizard: Failed to refetch currentUser after mutation:", refetchError);
+        navigate('/');
+      }
+    },
+    onError: (error) => {
+      console.error("SignupWizard: Mutation failed:", error);
     }
   });
 
@@ -39,13 +52,22 @@ export default function SignupWizard() {
     if (!isAuthenticated) {
       navigate('/login');
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, navigate]);
 
   if (!isAuthenticated) return null;
 
-  const next = () => setStep((s) => s + 1);
-  const back = () => setStep((s) => s - 1);
-  const finish = () => saveMutation.mutate();
+  const next = () => {
+    console.log(`Moving from step ${step} to ${step + 1}`);
+    setStep((s) => s + 1);
+  }
+  const back = () => {
+    console.log(`Moving from step ${step} to ${step - 1}`);
+    setStep((s) => s - 1);
+  }
+  const finish = () => {
+    console.log("Finish button clicked, initiating mutation...");
+    saveMutation.mutate();
+  }
 
   const percent = Math.round((step / 3) * 100);
 

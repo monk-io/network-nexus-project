@@ -7,11 +7,15 @@ import { checkJwt } from "./middleware/auth";
 import postsRouter from "./routes/posts.route";
 import usersRouter from "./routes/users.route";
 import connectionsRouter from "./routes/connections.route";
+import { seedDatabase } from "./seed"; // Import the seeding function
 
 async function start() {
   // Connect to MongoDB
   await mongoose.connect(config.MONGODB_URI);
   console.log("Connected to MongoDB");
+
+  // Seed the database (runs only if needed)
+  await seedDatabase();
 
   // Connect to Redis
   const redisClient = new Redis(config.REDIS_URL);

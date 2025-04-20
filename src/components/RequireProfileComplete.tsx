@@ -32,8 +32,9 @@ export default function RequireProfileComplete({ children }: RequireProfileCompl
   }
 
   if (isAuthenticated && profile) {
-    // If any of these core fields are empty, require signup wizard
-    if (!profile.title || !profile.location) {
+    // Check title, location, AND bio for completeness
+    if (!profile.title || !profile.location || !profile.bio) {
+      console.log("RequireProfileComplete: Redirecting to /signup due to missing fields", profile);
       return <Navigate to="/signup" replace />;
     }
   }
