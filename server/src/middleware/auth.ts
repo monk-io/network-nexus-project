@@ -11,5 +11,5 @@ export const checkJwt = expressjwt({
   }) as GetVerificationKey,
   audience: config.AUTH0_AUDIENCE,
   issuer: `https://${config.AUTH0_DOMAIN}/`,
-  algorithms: [\"RS256\"],
+  algorithms: ["RS256"],
 });

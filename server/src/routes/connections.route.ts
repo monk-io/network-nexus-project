@@ -1,7 +1,7 @@
 import { Router, RequestHandler } from "express";
 import { Types } from "mongoose";
-import Connection from "../models/connection.model";
-import User from "../models/user.model";
+import Connection, { IConnection } from "../models/connection.model";
+import User, { IUser } from "../models/user.model";
 
 // Auth0 attaches JWT payload on req.auth
 interface AuthenticatedRequest {
@@ -78,6 +78,7 @@ const getPending: RequestHandler = (req, res, next) => {
   Connection.find({ status: "pending", to: new Types.ObjectId(userId) })
     .skip(skip)
     .limit(limit)
+    .populate("from", "sub name title avatarUrl")
     .then((conns) => res.json(conns))
     .catch((err) => next(err));
 };
@@ -109,5 +110,109 @@ const updateConnection: RequestHandler = (req, res, next) => {
     .catch((err) => next(err));
 };
 router.patch("/:id", updateConnection);
+
+// DELETE /api/connections/:id - reject (remove) a connection request
+const deleteConnection: RequestHandler = (req, res, next) => {
+  const { id } = req.params;
+  const authReq = req as AuthenticatedRequest;
+  const userId = authReq.auth?.sub;
+  if (!userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  Connection.findOneAndDelete({
+    _id: new Types.ObjectId(id),
+    to: new Types.ObjectId(userId),
+  })
+    .then((conn) =>
+      conn
+        ? res.json(conn)
+        : res.status(404).json({ error: "Connection not found" })
+    )
+    .catch((err) => next(err));
+};
+router.delete("/:id", deleteConnection);
+
+// GET /api/connections/suggestions - list "People You May Know" suggestions
+const getSuggestions: RequestHandler = async (req, res, next) => {
+  const authReq = req as AuthenticatedRequest;
+  const userId = authReq.auth?.sub;
+  if (!userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const page = parseInt(req.query.page as string, 10) || 1;
+  const limit = parseInt(req.query.limit as string, 10) || 10;
+  const skip = (page - 1) * limit;
+
+  try {
+    // IDs of current user's connections
+    const conns: IConnection[] = await Connection.find({
+      status: "connected",
+      $or: [
+        { from: new Types.ObjectId(userId) },
+        { to: new Types.ObjectId(userId) },
+      ],
+    }).exec();
+    const connectionIds: string[] = conns.map((c) =>
+      c.from.toString() === userId ? c.to.toString() : c.from.toString()
+    );
+    // IDs of pending requests
+    const pendings: IConnection[] = await Connection.find({
+      status: "pending",
+      $or: [
+        { from: new Types.ObjectId(userId) },
+        { to: new Types.ObjectId(userId) },
+      ],
+    }).exec();
+    const pendingIds: string[] = pendings.map((c) =>
+      c.from.toString() === userId ? c.to.toString() : c.from.toString()
+    );
+
+    const excluded = new Set<string>([userId, ...connectionIds, ...pendingIds]);
+
+    // Fetch candidate users
+    const candidates: IUser[] = await User.find({
+      _id: { $nin: Array.from(excluded).map((id) => new Types.ObjectId(id)) },
+    })
+      .skip(skip)
+      .limit(limit)
+      .exec();
+
+    // Build suggestion objects with mutual count
+    const suggestions = await Promise.all(
+      candidates.map(async (u: IUser) => {
+        const uId: Types.ObjectId = u._id as Types.ObjectId;
+        // fetch u's connections
+        const uConns: IConnection[] = await Connection.find({
+          status: "connected",
+          $or: [{ from: uId }, { to: uId }],
+        }).exec();
+        const uConnIds: string[] = uConns.map((c) =>
+          c.from.equals(uId) ? c.to.toString() : c.from.toString()
+        );
+        const mutual: number = uConnIds.filter((id) =>
+          connectionIds.includes(id)
+        ).length;
+        return {
+          id: uId.toString(),
+          name: u.name,
+          title: u.title,
+          avatarUrl: u.avatarUrl,
+          mutualConnections: mutual,
+          profileUrl: `/profile/${encodeURIComponent(
+            u.name.toLowerCase().replace(/\s+/g, "-")
+          )}`,
+        };
+      })
+    );
+
+    res.json(suggestions);
+  } catch (err) {
+    next(err);
+  }
+};
+router.get("/suggestions", getSuggestions);
 
 export default router;

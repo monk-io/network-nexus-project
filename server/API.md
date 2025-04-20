@@ -54,6 +54,12 @@ User Object example:
 Description: List connections for a specific user.
 Response: 200 OK, JSON array of user objects.
 
+### GET /api/users/:id/posts
+
+Description: List posts created by a specific user (sorted by most recent first).
+Query Params: `page` (number), `limit` (number)
+Response: 200 OK, JSON array of post objects.
+
 ## User Management
 
 ### POST /api/users
@@ -102,6 +108,12 @@ Response: 200 OK, JSON array of connection objects.
 Description: Accept or reject a connection request.
 Request Body: `{ status: 'pending' | 'connected' }`
 Response: 200 OK, JSON of the updated connection object.
+
+### GET /api/connections/suggestions
+
+Description: List "People You May Know" suggestions for the authenticated user. Excludes current user and any existing or pending connections.
+Query Params: `page` (number), `limit` (number)
+Response: 200 OK, JSON array of user objects.
 
 ## Comments
 

@@ -1,5 +1,7 @@
-
-import React, { useState } from 'react';
+import React from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth0 } from '@auth0/auth0-react';
+import { fetchFeed, fetchSuggestions, createConnection, fetchCurrentUser, fetchConnections } from '@/lib/api';
 import CreatePostCard from "@/components/CreatePostCard";
 import Header from "@/components/Header";
 import PostCard from "@/components/PostCard";
@@ -10,79 +12,94 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User } from "lucide-react";
 import { Link } from "react-router-dom";
 
-// Mock data
-const posts = [
-  {
-    id: "1",
-    author: {
-      name: "Sarah Johnson",
-      title: "Product Designer at Design Co.",
-      avatarUrl: "https://i.pravatar.cc/150?img=1",
-      profileUrl: "/profile/sarah-johnson",
-    },
-    content: "Just launched our new product design system! It's been months in the making, but I'm so proud of what our team has accomplished. \n\nCheck it out and let me know what you think!",
-    timestamp: new Date(Date.now() - 3600000 * 2).toISOString(), // 2 hours ago
-    likes: 48,
-    comments: 12,
-  },
-  {
-    id: "2",
-    author: {
-      name: "Michael Chen",
-      title: "Software Engineer at TechCorp",
-      avatarUrl: "https://i.pravatar.cc/150?img=3",
-      profileUrl: "/profile/michael-chen",
-    },
-    content: "Excited to share that I've just published my first open-source library for React! It's a collection of hooks that I've found useful in my own projects.",
-    imageUrl: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1740&q=80",
-    timestamp: new Date(Date.now() - 3600000 * 8).toISOString(), // 8 hours ago
-    likes: 132,
-    comments: 24,
-  },
-  {
-    id: "3",
-    author: {
-      name: "Priya Sharma",
-      title: "Marketing Director at GrowthHackers",
-      avatarUrl: "https://i.pravatar.cc/150?img=5",
-      profileUrl: "/profile/priya-sharma",
-    },
-    content: "Looking for recommendations on the best marketing automation tools for a growing startup. What has worked well for your team?",
-    timestamp: new Date(Date.now() - 3600000 * 22).toISOString(), // 22 hours ago
-    likes: 15,
-    comments: 36,
-    isLiked: true,
-  }
-];
+// Type for feed post data fetched from API
+interface FeedPost {
+  id: string;
+  author: {
+    name: string;
+    title: string;
+    avatarUrl: string;
+    profileUrl: string;
+  };
+  content: string;
+  imageUrl?: string;
+  timestamp: string;
+  likes: number;
+  comments: number;
+  isLiked?: boolean;
+}
 
-const connectionSuggestions = [
-  {
-    id: "101",
-    name: "Emily Wilson",
-    title: "UX Researcher at UserFirst",
-    avatarUrl: "https://i.pravatar.cc/150?img=9",
-    mutualConnections: 7,
-    profileUrl: "/profile/emily-wilson",
-  },
-  {
-    id: "102",
-    name: "David Rodriguez",
-    title: "Frontend Developer at WebTech",
-    avatarUrl: "https://i.pravatar.cc/150?img=12",
-    mutualConnections: 3,
-    profileUrl: "/profile/david-rodriguez",
-  },
-  {
-    id: "103",
-    name: "Alex Thompson",
-    title: "Product Manager at InnovateCo",
-    avatarUrl: "https://i.pravatar.cc/150?img=7",
-    mutualConnections: 12,
-    profileUrl: "/profile/alex-thompson",
-  }
-];
+// Type for connection suggestion
+interface Suggestion {
+  id: string;
+  name: string;
+  title: string;
+  avatarUrl: string;
+  mutualConnections: number;
+  profileUrl: string;
+}
+
+// Types for user and connections
+interface UserProfile { sub: string; name: string; title?: string; avatarUrl?: string; location?: string; }
+interface ConnectionUser { _id: string; name: string; title?: string; avatarUrl?: string; }
 
 export default function Feed() {
+  const { getAccessTokenSilently, isAuthenticated, isLoading: authLoading } = useAuth0();
+  const queryClient = useQueryClient();
+  const connectMutation = useMutation<unknown, Error, string>({
+    mutationFn: async (id: string) => {
+      const token = await getAccessTokenSilently();
+      return createConnection(token, id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['connections'] });
+      queryClient.invalidateQueries({ queryKey: ['suggestions'] });
+    },
+  });
+
+  const { data: posts = [], isLoading: postsLoading } = useQuery<FeedPost[], Error>({
+    queryKey: ['feed'],
+    queryFn: async () => {
+      const token = await getAccessTokenSilently();
+      return fetchFeed(token);
+    },
+    enabled: isAuthenticated,
+  });
+
+  const {
+    data: suggestions = [],
+    isLoading: suggestionsLoading
+  } = useQuery<Suggestion[], Error>({
+    queryKey: ['suggestions'],
+    queryFn: async () => {
+      const token = await getAccessTokenSilently();
+      return fetchSuggestions(token);
+    },
+    enabled: isAuthenticated,
+  });
+
+  // Fetch current user and their connections for the profile card
+  const { data: user, isLoading: userLoading } = useQuery<UserProfile, Error>({
+    queryKey: ['currentUser'],
+    queryFn: async () => {
+      const token = await getAccessTokenSilently();
+      return fetchCurrentUser(token);
+    },
+    enabled: isAuthenticated,
+  });
+  const { data: connectionsList = [], isLoading: connLoading } = useQuery<ConnectionUser[], Error>({
+    queryKey: ['connections'],
+    queryFn: async () => {
+      const token = await getAccessTokenSilently();
+      return fetchConnections(token);
+    },
+    enabled: isAuthenticated,
+  });
+
+  if (authLoading || postsLoading || userLoading || connLoading) {
+    return <div className="flex items-center justify-center h-screen">Loading feed…</div>;
+  }
+
   return (
     <div className="min-h-screen bg-linkedin-bg">
       <Header />
@@ -91,7 +108,15 @@ export default function Feed() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           {/* Left sidebar */}
           <div className="lg:col-span-3 space-y-4">
-            <ProfileCard className="mb-4" />
+            <ProfileCard
+              className="mb-4"
+              name={user?.name}
+              title={user?.title}
+              location={user?.location}
+              avatarUrl={user?.avatarUrl}
+              connectionCount={connectionsList.length}
+              isCurrentUser
+            />
             
             <Card className="bg-white rounded-lg shadow overflow-hidden">
               <div className="p-4">
@@ -101,18 +126,22 @@ export default function Feed() {
                 </div>
                 <h4 className="text-base font-semibold mb-3">Grow your network</h4>
                 <div className="space-y-1">
-                  {connectionSuggestions.slice(0, 2).map(connection => (
-                    <ConnectionCard
-                      key={connection.id}
-                      id={connection.id}
-                      name={connection.name}
-                      title={connection.title}
-                      avatarUrl={connection.avatarUrl}
-                      mutualConnections={connection.mutualConnections}
-                      profileUrl={connection.profileUrl}
-                      onConnect={(id) => console.log(`Connect with ${id}`)}
-                    />
-                  ))}
+                  {suggestionsLoading ? (
+                    <div>Loading suggestions…</div>
+                  ) : (
+                    suggestions.slice(0, 2).map(connection => (
+                      <ConnectionCard
+                        key={connection.id}
+                        id={connection.id}
+                        name={connection.name}
+                        title={connection.title}
+                        avatarUrl={connection.avatarUrl}
+                        mutualConnections={connection.mutualConnections}
+                        profileUrl={connection.profileUrl}
+                        onConnect={(id) => connectMutation.mutate(id)}
+                      />
+                    ))
+                  )}
                 </div>
               </div>
             </Card>
@@ -132,27 +161,22 @@ export default function Feed() {
             <div className="bg-white rounded-lg shadow p-4">
               <h3 className="text-base font-medium mb-3">Add to your feed</h3>
               <div className="space-y-4">
-                {connectionSuggestions.map(connection => (
-                  <div key={connection.id} className="flex items-start space-x-2">
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src={connection.avatarUrl} />
-                      <AvatarFallback>
-                        <User className="h-4 w-4" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="text-sm font-medium">{connection.name}</p>
-                      <p className="text-xs text-gray-500 mb-2">{connection.title}</p>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="h-7 text-xs border-gray-300"
-                      >
-                        + Follow
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                {suggestionsLoading ? (
+                  <div>Loading suggestions…</div>
+                ) : (
+                  suggestions.slice(0, 2).map(connection => (
+                    <ConnectionCard
+                      key={connection.id}
+                      id={connection.id}
+                      name={connection.name}
+                      title={connection.title}
+                      avatarUrl={connection.avatarUrl}
+                      mutualConnections={connection.mutualConnections}
+                      profileUrl={connection.profileUrl}
+                      onConnect={(id) => connectMutation.mutate(id)}
+                    />
+                  ))
+                )}
               </div>
             </div>
             

@@ -1,21 +1,30 @@
-
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Image, FileText, Calendar, User } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { createPost } from "@/lib/api";
+import { useAuth0 } from "@auth0/auth0-react";
 
 export default function CreatePostCard() {
   const [postText, setPostText] = useState("");
-  
+  const queryClient = useQueryClient();
+  const { getAccessTokenSilently } = useAuth0();
+  const createPostMutation = useMutation<unknown, Error, string>({
+    mutationFn: async (content: string) => {
+      const token = await getAccessTokenSilently();
+      return createPost(token, { content });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["feed"] });
+    },
+  });
+
   const handleCreatePost = () => {
     if (!postText.trim()) return;
-    
-    // In a real app, you would send this to your API
-    console.log("Creating post:", postText);
-    
-    // Reset input
+    createPostMutation.mutate(postText);
     setPostText("");
   };
   
