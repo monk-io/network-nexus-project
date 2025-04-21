@@ -57,6 +57,7 @@ export default function Feed() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['connections'] });
       queryClient.invalidateQueries({ queryKey: ['suggestions'] });
+      queryClient.invalidateQueries({ queryKey: ['feed'] });
     },
   });
 
@@ -153,6 +154,41 @@ export default function Feed() {
           <div className="lg:col-span-6 space-y-4">
             <CreatePostCard />
             
+            {/* Check for empty feed after loading */}
+            {!postsLoading && posts.length === 0 && (
+              <div className="bg-white rounded-lg shadow p-6 text-center">
+                <svg 
+                  className="mx-auto h-12 w-12 text-gray-400" 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor" 
+                  aria-hidden="true"
+                >
+                  <path 
+                    vectorEffect="non-scaling-stroke" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l4-4m0 4l-4-4" 
+                  />
+                </svg>
+                <h3 className="mt-2 text-lg font-medium text-gray-900">Your feed is quiet... too quiet!</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Start by connecting with people you know or share your thoughts.
+                </p>
+                <div className="mt-6 flex justify-center gap-4">
+                  <Link to="/network">
+                    <Button variant="outline">
+                      Find Connections
+                    </Button>
+                  </Link>
+                  {/* Optional: Add a button to focus the CreatePostCard */}
+                  {/* <Button>Create Post</Button> */}
+                </div>
+              </div>
+            )}
+
+            {/* Render posts if not empty */}
             {posts.map(post => (
               <PostCard 
                 key={post._id}

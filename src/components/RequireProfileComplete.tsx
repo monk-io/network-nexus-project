@@ -31,9 +31,13 @@ export default function RequireProfileComplete({ children }: RequireProfileCompl
     return <div className="flex items-center justify-center h-screen">Loading profile…</div>;
   }
 
-  if (isAuthenticated && profile) {
-    // Check title, location, AND bio for completeness
-    if (!profile.title || !profile.location || !profile.bio) {
+  // Check after loading and authentication
+  if (!isLoading && isAuthenticated) {
+    // Redirect if profile doesn't exist OR if it exists but is incomplete
+    if (!profile) {
+      console.log("RequireProfileComplete: Redirecting to /signup due to missing profile");
+      return <Navigate to="/signup" replace />;
+    } else if (!profile.title || !profile.location || !profile.bio) {
       console.log("RequireProfileComplete: Redirecting to /signup due to missing fields", profile);
       return <Navigate to="/signup" replace />;
     }

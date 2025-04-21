@@ -6,8 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
+import { StepIndicator } from '@/components/ui/StepIndicator';
+import ProfileCard from '@/components/ProfileCard';
 import { useNavigate } from 'react-router-dom';
+import { Logo } from '@/components/Logo';
 
 export default function SignupWizard() {
   const { user, isAuthenticated, getAccessTokenSilently } = useAuth0();
@@ -69,14 +71,23 @@ export default function SignupWizard() {
     saveMutation.mutate();
   }
 
-  const percent = Math.round((step / 3) * 100);
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-linkedin-bg">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-linkedin-bg p-4">
+      {/* Header Section */}
+      <div className="text-center mb-8">
+        {/* Replace Placeholder with actual Logo component */}
+        <div className="inline-block p-1 mb-4">
+          <Logo className="w-10 h-10" />
+        </div>
+        <h1 className="text-3xl font-bold mb-2">Welcome!</h1>
+        <p className="text-md text-gray-600">Let's set up your profile before you dive in.</p>
+      </div>
+
+      {/* Wizard Card */}
       <Card className="w-full max-w-md">
         <CardContent className="p-6">
-          <h2 className="text-xl font-semibold mb-2">Complete Your Profile (Step {step} of 3)</h2>
-          <Progress value={percent} className="mb-4" />
+          <StepIndicator currentStep={step} totalSteps={3} />
+          <h2 className="text-xl font-semibold mb-4 text-center">Complete Your Profile</h2>
 
           {step === 1 && (
             <div className="space-y-4">
@@ -106,13 +117,21 @@ export default function SignupWizard() {
 
           {step === 3 && (
             <div className="space-y-3">
-              <p className="text-sm text-gray-700">Review your details:</p>
-              <ul className="list-disc list-inside text-sm text-gray-700">
-                <li><strong>Name:</strong> {name}</li>
-                <li><strong>Title:</strong> {title}</li>
-                <li><strong>Bio:</strong> {bio}</li>
-                <li><strong>Location:</strong> {location}</li>
-              </ul>
+              <p className="text-sm text-gray-700 mb-4 text-center">Please review your details before saving:</p>
+              <ProfileCard
+                name={name}
+                title={title}
+                location={location}
+                avatarUrl={user!.picture || ''}
+                connectionCount={0}
+                isCurrentUser={false}
+              />
+              {bio && (
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-1">Bio</h4>
+                  <p className="text-sm text-gray-600 whitespace-pre-wrap">{bio}</p>
+                </div>
+              )}
             </div>
           )}
 
