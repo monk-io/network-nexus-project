@@ -23,3 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 azure.json
+
+# Environment variables
+.env
+.env.*
+*.env
