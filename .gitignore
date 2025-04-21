@@ -26,5 +26,3 @@ azure.json
 
 # Environment variables
 .env
-.env.*
-*.env
