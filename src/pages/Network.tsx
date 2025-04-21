@@ -1,121 +1,112 @@
-
 import Header from "@/components/Header";
 import ConnectionCard from "@/components/ConnectionCard";
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { useAuth0 } from '@auth0/auth0-react';
+import { fetchConnections, fetchSuggestions, createConnection, fetchPendingConnections, updateConnection, deleteConnection } from '@/lib/api';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Grid2X2, Grid3X3, UserPlus, Users, UsersRound } from "lucide-react";
+import { Grid2X2, Grid3X3, UserPlus, Users, UsersRound, User } from "lucide-react";
 import { useState } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Link } from 'react-router-dom';
 
-// Mock data
-const connectionSuggestions = [
-  {
-    id: "101",
-    name: "Emily Wilson",
-    title: "UX Researcher at UserFirst",
-    avatarUrl: "https://i.pravatar.cc/150?img=9",
-    mutualConnections: 7,
-    profileUrl: "/profile/emily-wilson",
-  },
-  {
-    id: "102",
-    name: "David Rodriguez",
-    title: "Frontend Developer at WebTech",
-    avatarUrl: "https://i.pravatar.cc/150?img=12",
-    mutualConnections: 3,
-    profileUrl: "/profile/david-rodriguez",
-  },
-  {
-    id: "103",
-    name: "Alex Thompson",
-    title: "Product Manager at InnovateCo",
-    avatarUrl: "https://i.pravatar.cc/150?img=7",
-    mutualConnections: 12,
-    profileUrl: "/profile/alex-thompson",
-  },
-  {
-    id: "104",
-    name: "Maria Garcia",
-    title: "Data Scientist at DataCorp",
-    avatarUrl: "https://i.pravatar.cc/150?img=10",
-    mutualConnections: 5,
-    profileUrl: "/profile/maria-garcia",
-  },
-  {
-    id: "105",
-    name: "James Wilson",
-    title: "UI Designer at DesignHub",
-    avatarUrl: "https://i.pravatar.cc/150?img=11",
-    mutualConnections: 9,
-    profileUrl: "/profile/james-wilson",
-  },
-  {
-    id: "106",
-    name: "Sarah Brown",
-    title: "Marketing Manager at GrowthInc",
-    avatarUrl: "https://i.pravatar.cc/150?img=14",
-    mutualConnections: 2,
-    profileUrl: "/profile/sarah-brown",
-  },
-  {
-    id: "107",
-    name: "Robert Johnson",
-    title: "Software Architect at TechBuilders",
-    avatarUrl: "https://i.pravatar.cc/150?img=15",
-    mutualConnections: 8,
-    profileUrl: "/profile/robert-johnson",
-  },
-  {
-    id: "108",
-    name: "Jennifer Lee",
-    title: "Content Strategist at ContentWorks",
-    avatarUrl: "https://i.pravatar.cc/150?img=16",
-    mutualConnections: 4,
-    profileUrl: "/profile/jennifer-lee",
-  }
-];
+// Types for API data
+interface Suggestion {
+  _id: string;
+  sub: string;
+  username: string;
+  name: string;
+  title?: string;
+  avatarUrl?: string;
+  // mutualConnections is not returned by backend
+  // profileUrl is constructed in component
+}
 
-const existingConnections = [
-  {
-    id: "201",
-    name: "Thomas Wright",
-    title: "Full Stack Developer at WebSolutions",
-    avatarUrl: "https://i.pravatar.cc/150?img=17",
-    profileUrl: "/profile/thomas-wright",
-    isConnected: true
-  },
-  {
-    id: "202",
-    name: "Olivia Parker",
-    title: "Product Designer at CreativeCo",
-    avatarUrl: "https://i.pravatar.cc/150?img=18",
-    profileUrl: "/profile/olivia-parker",
-    isConnected: true
-  },
-  {
-    id: "203",
-    name: "Michael Scott",
-    title: "Regional Manager at Dunder Mifflin",
-    avatarUrl: "https://i.pravatar.cc/150?img=19",
-    profileUrl: "/profile/michael-scott",
-    isConnected: true
-  },
-  {
-    id: "204",
-    name: "Pam Beesly",
-    title: "Office Administrator at Dunder Mifflin",
-    avatarUrl: "https://i.pravatar.cc/150?img=20",
-    profileUrl: "/profile/pam-beesly",
-    isConnected: true
-  }
-];
+interface ConnectionUser { 
+  _id: string; 
+  username: string; // Add username
+  name: string; 
+  title?: string; 
+  avatarUrl?: string; 
+}
+
+// Types for pending connection invitations
+interface PendingConnection {
+  _id: string;
+  from: {
+    _id: string; // Assuming API returns _id
+    sub: string;
+    username: string; // Add username
+    name: string;
+    title?: string;
+    avatarUrl?: string;
+  };
+  // Add other fields if needed, like status, timestamps
+}
 
 export default function Network() {
   const [gridView, setGridView] = useState<'grid' | 'list'>('grid');
-  const [connectedUsers, setConnectedUsers] = useState<string[]>(existingConnections.map(c => c.id));
+  const queryClient = useQueryClient();
+  const { getAccessTokenSilently, isAuthenticated, isLoading: authLoading } = useAuth0();
 
-  const handleConnect = (id: string) => {
-    setConnectedUsers(prev => [...prev, id]);
+  // Fetch existing connections
+  const { data: connections = [], isLoading: connectionsLoading } = useQuery<ConnectionUser[], Error>({
+    queryKey: ['connections'],
+    queryFn: async () => {
+      const token = await getAccessTokenSilently();
+      return fetchConnections(token);
+    },
+    enabled: isAuthenticated,
+  });
+
+  // Fetch suggestions
+  const { data: suggestions = [], isLoading: suggestionsLoading } = useQuery<Suggestion[], Error>({
+    queryKey: ['suggestions'],
+    queryFn: async () => {
+      const token = await getAccessTokenSilently();
+      return fetchSuggestions(token);
+    },
+    enabled: isAuthenticated,
+  });
+
+  // Fetch pending connection requests
+  const { data: pending = [], isLoading: pendingLoading } = useQuery<PendingConnection[], Error>({
+    queryKey: ['pendingConnections'],
+    queryFn: async () => {
+      const token = await getAccessTokenSilently();
+      return fetchPendingConnections(token);
+    },
+    enabled: isAuthenticated,
+  });
+
+  // Mutations for accepting or rejecting invitations
+  const acceptMutation = useMutation<void, Error, string>({
+    mutationFn: async (id: string) => {
+      const token = await getAccessTokenSilently();
+      await updateConnection(token, id, 'connected');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['connections'] });
+      queryClient.invalidateQueries({ queryKey: ['pendingConnections'] });
+    },
+  });
+  const rejectMutation = useMutation<void, Error, string>({
+    mutationFn: async (id: string) => {
+      const token = await getAccessTokenSilently();
+      await deleteConnection(token, id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pendingConnections'] });
+    },
+  });
+
+  const handleConnect = async (id: string) => {
+    const token = await getAccessTokenSilently();
+    await createConnection(token, id);
+    // Refresh both lists
+    queryClient.invalidateQueries({ queryKey: ['connections'] });
+    queryClient.invalidateQueries({ queryKey: ['suggestions'] });
   };
 
   return (
@@ -136,7 +127,7 @@ export default function Network() {
                     <Button variant="ghost" className="w-full justify-start text-gray-700 hover:text-linkedin-blue">
                       <UsersRound className="h-5 w-5 mr-3" />
                       Connections
-                      <span className="ml-auto text-gray-500">{connectedUsers.length}</span>
+                      <span className="ml-auto text-gray-500">{connections.length}</span>
                     </Button>
                   </li>
                   <li>
@@ -203,6 +194,12 @@ export default function Network() {
                       >
                         People You May Know
                       </TabsTrigger>
+                      <TabsTrigger 
+                        value="pending" 
+                        className="text-base font-medium px-2 py-1 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-linkedin-blue"
+                      >
+                        Invitations
+                      </TabsTrigger>
                     </TabsList>
                     <div className="flex space-x-1">
                       <Button 
@@ -228,22 +225,94 @@ export default function Network() {
               
               <TabsContent value="connections" className="mt-0">
                 <div className={gridView === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4' : 'space-y-4'}>
-                  {existingConnections.map(connection => (
-                    <ConnectionCard key={connection.id} {...connection} />
-                  ))}
+                  {connectionsLoading ? (
+                    <div>Loading connections…</div>
+                  ) : connections.length === 0 ? (
+                    <div className="col-span-full text-center text-gray-500 py-4">No connections yet.</div>
+                  ) : (
+                    connections.map(c => (
+                      <ConnectionCard
+                        key={c._id}
+                        id={c._id}
+                        name={c.name}
+                        title={c.title}
+                        avatarUrl={c.avatarUrl}
+                        profileUrl={`/profile/${c.username}`}
+                        isConnected={true}
+                      />
+                    ))
+                  )}
                 </div>
               </TabsContent>
               
               <TabsContent value="suggestions" className="mt-0">
                 <div className={gridView === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4' : 'space-y-4'}>
-                  {connectionSuggestions.map(suggestion => (
-                    <ConnectionCard 
-                      key={suggestion.id} 
-                      {...suggestion}
-                      onConnect={handleConnect}
-                      isConnected={connectedUsers.includes(suggestion.id)}
-                    />
-                  ))}
+                  {suggestionsLoading ? (
+                    <div>Loading suggestions…</div>
+                  ) : suggestions.length === 0 ? (
+                     <div className="col-span-full text-center text-gray-500 py-4">No suggestions right now.</div>
+                  ) : (
+                    suggestions.map(suggestion => (
+                      <ConnectionCard
+                        key={suggestion._id}
+                        id={suggestion._id}
+                        name={suggestion.name}
+                        title={suggestion.title}
+                        avatarUrl={suggestion.avatarUrl}
+                        profileUrl={`/profile/${suggestion.username}`}
+                        onConnect={handleConnect}
+                        isConnected={false}
+                      />
+                    ))
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="pending" className="mt-0">
+                <div className="space-y-4">
+                  {pendingLoading ? (
+                      <div>Loading invitations…</div>
+                  ) : pending.length === 0 ? (
+                      <div className="text-center text-gray-500 py-4">No pending invitations.</div>
+                  ) : (
+                    pending.map(invitation => (
+                      <div key={invitation._id} className="flex items-center justify-between p-3 border rounded-lg bg-white">
+                          <div className="flex items-center space-x-3">
+                             <Link to={`/profile/${invitation.from.username}`}> 
+                                <Avatar className="h-10 w-10">
+                                  <AvatarImage src={invitation.from.avatarUrl} />
+                                  <AvatarFallback><User className="h-5 w-5" /></AvatarFallback>
+                                </Avatar>
+                              </Link>
+                              <div>
+                                <Link to={`/profile/${invitation.from.username}`} className="font-medium text-sm hover:underline">
+                                  {invitation.from.name}
+                                </Link>
+                                <p className="text-xs text-gray-500">{invitation.from.title}</p>
+                              </div>
+                          </div>
+                          <div className="flex space-x-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-8" 
+                                onClick={() => rejectMutation.mutate(invitation._id)}
+                                disabled={rejectMutation.status === 'pending'}
+                              >
+                                Ignore
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                className="h-8 bg-linkedin-blue hover:bg-linkedin-lightblue"
+                                onClick={() => acceptMutation.mutate(invitation._id)}
+                                disabled={acceptMutation.status === 'pending'}
+                              >
+                                Accept
+                              </Button>
+                          </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </TabsContent>
             </Tabs>
