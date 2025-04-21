@@ -1,6 +1,0 @@
-REPO network-nexus-project
-LOAD network-nexus-project.yaml 
-ENTRY network-nexus-project/stack
-IMAGE backend:latest backend server Dockerfile
-SECRET default-netlify-pat
-BLOBS frontend:.
