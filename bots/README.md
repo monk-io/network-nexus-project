@@ -15,7 +15,7 @@ This simulator creates automated bots that interact directly with the Network Ne
 
 - Python 3.8+
 - MongoDB database (same as used by the Network Nexus API)
-- Ollama (or compatible LLM API) running
+- Ollama running
 
 ## Setup
 
