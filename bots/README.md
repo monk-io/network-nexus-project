@@ -30,7 +30,7 @@ This simulator creates automated bots that interact directly with the Network Ne
    # MongoDB Configuration
    MONGODB_URI=mongodb://localhost:27017/network-nexus
 
-   # LLM API Configuration (Ollama)
+   # LLM API Configuration (LLM)
    LLM_API_URL=http://localhost:11434
    LLM_API_KEY=
 
@@ -41,7 +41,7 @@ This simulator creates automated bots that interact directly with the Network Ne
 
 3. Make sure your MongoDB database is running and accessible.
 
-4. Make sure Ollama (or your preferred LLM API) is running and accessible.
+4. Make sure LLM (or your preferred LLM API) is running and accessible.
 
 ## Authentication
 

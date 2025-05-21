@@ -44,26 +44,26 @@ class LLMClient:
         """Ensure the model is pulled and available"""
         try:
             async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as client:
-                # First check if Ollama server is running
+                # First check if LLM server is running
                 max_retries = 5
                 retry_delay = 2  # seconds
                 
                 for attempt in range(max_retries):
                     try:
-                        logger.debug(f"Checking Ollama server health (attempt {attempt + 1}/{max_retries})")
+                        logger.debug(f"Checking LLM server health (attempt {attempt + 1}/{max_retries})")
                         health_check = await client.get(f"{self.base_url}/api/tags")
                         if health_check.status_code == 200:
-                            logger.info("Ollama server is running")
+                            logger.info("LLM server is running")
                             break
                         else:
-                            logger.warning(f"Ollama server returned status {health_check.status_code}")
+                            logger.warning(f"LLM server returned status {health_check.status_code}")
                     except Exception as e:
-                        logger.warning(f"Failed to connect to Ollama server (attempt {attempt + 1}/{max_retries}): {e}")
+                        logger.warning(f"Failed to connect to LLM server (attempt {attempt + 1}/{max_retries}): {e}")
                         if attempt < max_retries - 1:
                             logger.info(f"Waiting {retry_delay} seconds before retrying...")
                             await asyncio.sleep(retry_delay)
                         else:
-                            logger.error("Failed to connect to Ollama server after all retries")
+                            logger.error("Failed to connect to LLM server after all retries")
                             return False
                 
                 # Now check if the model exists
@@ -98,16 +98,16 @@ class LLMClient:
     async def generate(self, prompt: str, max_tokens: int = 100) -> str:
         """Generate text using the LLM"""
         try:
-            # First check if Ollama is running
+            # First check if LLM is running
             async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as client:
                 try:
-                    logger.debug(f"Checking Ollama health at {self.base_url}/api/tags")
+                    logger.debug(f"Checking LLM health at {self.base_url}/api/tags")
                     health_check = await client.get(f"{self.base_url}/api/tags")
-                    logger.debug(f"Ollama health check response: {health_check.status_code}")
+                    logger.debug(f"LLM health check response: {health_check.status_code}")
                     if health_check.status_code != 200:
-                        logger.error(f"Ollama health check failed: {health_check.text}")
+                        logger.error(f"LLM health check failed: {health_check.text}")
                 except Exception as e:
-                    logger.error(f"Failed to connect to Ollama: {e}")
+                    logger.error(f"Failed to connect to LLM: {e}")
                     return "{}"
 
                 # Prepare the request payload
