@@ -1,0 +1,21 @@
+REPO network-nexus-project
+
+ENV dev staging prod
+
+LOAD network-nexus.yaml
+
+# Default entrypoint (staging stack)
+ENTRY network-nexus/staging
+
+# Env-specific entrypoints (avoid ENV warnings)
+ENTRY dev:network-nexus/dev
+ENTRY staging:network-nexus/staging
+ENTRY prod:network-nexus/prod
+
+# Build images locally for staging; production will override with internal registry prefixes.
+IMAGE frontend:latest network-nexus/frontend . Dockerfile
+IMAGE server:latest network-nexus/server server Dockerfile
+IMAGE bots:latest network-nexus/bots bots Dockerfile
+
+# User-provided secrets
+SECRET mongodb-root-password auth0-domain auth0-audience auth0-client-id auth0-client-secret

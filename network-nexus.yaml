@@ -1,0 +1,281 @@
+namespace: network-nexus
+
+mongodb:
+  defines: runnable
+  inherits: mongodb/mongodb
+  variables:
+    mongo-init-database:
+      type: string
+      value: network-nexus
+      env: MONGO_INITDB_DATABASE
+    mongo-init-username:
+      type: string
+      value: mongo
+      env: MONGO_INITDB_ROOT_USERNAME
+    mongo-init-password:
+      type: string
+      value: <- secret("mongodb-root-password")
+      env: MONGO_INITDB_ROOT_PASSWORD
+  permitted-secrets:
+    mongodb-root-password: true
+
+redis:
+  defines: runnable
+  inherits: redis/redis
+  variables:
+    redis-empty-password:
+      type: string
+      value: "yes"
+      env: ALLOW_EMPTY_PASSWORD
+
+server:
+  defines: runnable
+  containers:
+    main:
+      image: server:latest
+  services:
+    http:
+      container: main
+      port: 4000
+      protocol: tcp
+      ingress-routes:
+        api:
+          path-prefix: /api/
+          path-rewrite:
+            regex: "^/api/(.*)"
+            to: "/$1"
+  connections:
+    mongodb:
+      target: network-nexus/mongodb
+      service: mongodb
+    redis:
+      target: network-nexus/redis
+      service: redis-svc
+  depends:
+    wait-for:
+      runnables:
+        - network-nexus/mongodb
+        - network-nexus/redis
+      timeout: 180
+  checks:
+    readiness:
+      code: tcp-check-service("network-nexus/server", "http")
+      period: 10
+      initialDelay: 5
+  variables:
+    port:
+      type: int
+      value: 4000
+      env: PORT
+    mongodb-host:
+      type: string
+      env: MONGODB_HOST
+      value: <- connection-hostname("mongodb")
+    mongodb-port:
+      type: int
+      env: MONGODB_PORT
+      value: <- connection-port("mongodb")
+    mongodb-db:
+      type: string
+      env: MONGODB_DB
+      value: network-nexus
+    mongodb-user:
+      type: string
+      env: MONGODB_USER
+      value: mongo
+    mongodb-password:
+      type: string
+      env: MONGODB_PASSWORD
+      value: <- secret("mongodb-root-password")
+    mongodb-password-url-encoded:
+      type: string
+      value: >-
+        <- secret("mongodb-root-password")
+        replace("%", "%25")
+        replace("@", "%40")
+        replace(":", "%3A")
+        replace("/", "%2F")
+        replace("?", "%3F")
+        replace("#", "%23")
+        replace("&", "%26")
+        replace("=", "%3D")
+        replace("+", "%2B")
+        replace(" ", "%20")
+    mongodb-uri:
+      type: string
+      env: MONGODB_URI
+      value: >-
+        <- "mongodb://mongo:"
+        $mongodb-password-url-encoded
+        "@" $mongodb-host ":" $mongodb-port
+        "/network-nexus?authSource=admin&retryWrites=true&w=majority"
+        concat-all
+    redis-url:
+      type: string
+      env: REDIS_URL
+      value: >-
+        <- "redis://"
+        connection-hostname("redis") ":" connection-port("redis")
+        concat-all
+    auth0-domain:
+      type: string
+      env: AUTH0_DOMAIN
+      value: <- secret("auth0-domain")
+    auth0-audience:
+      type: string
+      env: AUTH0_AUDIENCE
+      value: <- secret("auth0-audience")
+    auth0-client-id:
+      type: string
+      env: AUTH0_CLIENT_ID
+      value: <- secret("auth0-client-id")
+    auth0-client-secret:
+      type: string
+      env: AUTH0_CLIENT_SECRET
+      value: <- secret("auth0-client-secret")
+    cors-allowed-origin:
+      type: string
+      value: "*"
+      env: CORS_ALLOWED_ORIGIN
+  permitted-secrets:
+    mongodb-root-password: true
+    auth0-domain: true
+    auth0-audience: true
+    auth0-client-id: true
+    auth0-client-secret: true
+
+bots:
+  defines: runnable
+  containers:
+    main:
+      image: bots:latest
+  connections:
+    mongodb:
+      target: network-nexus/mongodb
+      service: mongodb
+  depends:
+    wait-for:
+      runnables:
+        - network-nexus/mongodb
+      timeout: 180
+  variables:
+    mongodb-host:
+      type: string
+      env: MONGODB_HOST
+      value: <- connection-hostname("mongodb")
+    mongodb-port:
+      type: int
+      env: MONGODB_PORT
+      value: <- connection-port("mongodb")
+    mongodb-db:
+      type: string
+      env: MONGODB_DB
+      value: network-nexus
+    mongodb-user:
+      type: string
+      env: MONGODB_USER
+      value: mongo
+    mongodb-password:
+      type: string
+      env: MONGODB_PASSWORD
+      value: <- secret("mongodb-root-password")
+    mongodb-password-url-encoded:
+      type: string
+      value: >-
+        <- secret("mongodb-root-password")
+        replace("%", "%25")
+        replace("@", "%40")
+        replace(":", "%3A")
+        replace("/", "%2F")
+        replace("?", "%3F")
+        replace("#", "%23")
+        replace("&", "%26")
+        replace("=", "%3D")
+        replace("+", "%2B")
+        replace(" ", "%20")
+    mongodb-uri:
+      type: string
+      env: MONGODB_URI
+      value: >-
+        <- "mongodb://mongo:"
+        $mongodb-password-url-encoded
+        "@" $mongodb-host ":" $mongodb-port
+        "/network-nexus?authSource=admin&retryWrites=true&w=majority"
+        concat-all
+    llm-api-url:
+      type: string
+      env: LLM_API_URL
+      value: ""
+    llm-api-key:
+      type: string
+      env: LLM_API_KEY
+      value: ""
+    num-bots:
+      type: int
+      env: NUM_BOTS
+      value: 5
+    tick-interval:
+      type: int
+      env: TICK_INTERVAL
+      value: 30
+  permitted-secrets:
+    mongodb-root-password: true
+
+frontend:
+  defines: runnable
+  containers:
+    main:
+      image: frontend:latest
+  services:
+    http:
+      container: main
+      port: 8080
+      protocol: tcp
+      ingress-routes:
+        site:
+          path-prefix: /
+  depends:
+    wait-for:
+      runnables:
+        - network-nexus/server
+      timeout: 180
+  variables:
+    vite-auth0-domain:
+      type: string
+      env: VITE_AUTH0_DOMAIN
+      value: <- secret("auth0-domain")
+    vite-auth0-client-id:
+      type: string
+      env: VITE_AUTH0_CLIENT_ID
+      value: <- secret("auth0-client-id")
+    vite-auth0-audience:
+      type: string
+      env: VITE_AUTH0_AUDIENCE
+      value: <- secret("auth0-audience")
+    vite-api-url:
+      type: string
+      env: VITE_API_URL
+      value: "/api"
+  permitted-secrets:
+    auth0-domain: true
+    auth0-audience: true
+    auth0-client-id: true
+
+staging:
+  defines: group
+  members:
+    - network-nexus/mongodb
+    - network-nexus/redis
+    - network-nexus/server
+    - network-nexus/bots
+    - network-nexus/frontend
+
+dev:
+  defines: group
+  members:
+    - network-nexus/staging
+
+prod:
+  defines: group
+  members:
+    - network-nexus/staging

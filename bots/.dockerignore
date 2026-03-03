@@ -1,0 +1,31 @@
+.git
+.gitignore
+
+# Node / frontend artifacts (monorepo ballast)
+node_modules
+dist
+build
+.next
+.nuxt
+.output
+
+# Python cache / venv
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+
+# Env files / secrets
+.env
+.env.*
+
+# Editor / OS files
+.DS_Store
+.idea/
+.vscode/
+
+# Logs / temp
+*.log
+tmp/
